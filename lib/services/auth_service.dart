@@ -15,6 +15,7 @@ class AuthService {
         Uri.parse(ApiConfig.loginEndpoint),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
+          'Accept': 'application/json',
         },
         body: jsonEncode(<String, String>{
           'username': username,

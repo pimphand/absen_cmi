@@ -1,7 +1,7 @@
 class ApiConfig {
   // Base URL untuk API
   static const String baseUrl = 'https://absensi.dmpt.my.id/api';
-
+  static const String assetsUrl = 'https://absensi.dmpt.my.id/storage/';
   // Endpoint spesifik
   static const String loginEndpoint = '$baseUrl/login';
   static const String logoutEndpoint = '$baseUrl/absen';
@@ -9,6 +9,7 @@ class ApiConfig {
   static const String attendanceEndpoint = '/absen';
   static const String checkInEndpoint = '/check-in';
   static const String leavesEndpoint = '/leaves';
+  static const String ordersEndpoint = '$baseUrl/orders';
   // Tambahkan endpoint lain sesuai kebutuhan
 
   // Lokasi Kantor

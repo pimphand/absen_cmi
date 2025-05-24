@@ -6,7 +6,7 @@ import 'screens/login_screen.dart';
 import 'providers/attendance_provider.dart';
 import 'services/notification_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Set orientasi layar ke portrait only
@@ -15,9 +15,13 @@ void main() {
     DeviceOrientation.portraitDown,
   ]);
 
+  // Initialize notification service
+  final notificationService = NotificationService();
+  await notificationService.initialize();
+
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => NotificationService(),
+    ChangeNotifierProvider.value(
+      value: notificationService,
       child: MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => AttendanceProvider())

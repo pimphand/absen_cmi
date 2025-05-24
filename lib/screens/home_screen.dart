@@ -8,6 +8,7 @@ import '../widgets/home/attendance_history.dart';
 import '../widgets/home/live_location_map.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../providers/attendance_provider.dart';
+import '../screens/order_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -18,6 +19,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool _isInOffice = false;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -39,7 +41,106 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(),
+      key: _scaffoldKey,
+      appBar: CustomAppBar(scaffoldKey: _scaffoldKey),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blue[700],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Colors.white,
+                    child: Icon(Icons.person, size: 35, color: Colors.blue),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Welcome',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    'user@example.com',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.home),
+              title: const Text('Home'),
+              onTap: () {
+                Navigator.pop(context);
+                // Already on home screen
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.shopping_cart),
+              title: const Text('Orders'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const OrderScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_today),
+              title: const Text('Attendance'),
+              onTap: () {
+                Navigator.pop(context);
+                // Navigate to attendance
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.event_busy),
+              title: const Text('Leave Requests'),
+              onTap: () {
+                Navigator.pop(context);
+                // Navigate to leave requests
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.history),
+              title: const Text('History'),
+              onTap: () {
+                Navigator.pop(context);
+                // Navigate to history
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Settings'),
+              onTap: () {
+                Navigator.pop(context);
+                // Navigate to settings
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('Logout'),
+              onTap: () {
+                Navigator.pop(context);
+                // Handle logout
+              },
+            ),
+          ],
+        ),
+      ),
       body: RefreshIndicator(
         onRefresh: () async {
           final provider = context.read<AttendanceProvider>();
