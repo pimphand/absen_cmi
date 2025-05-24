@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../screens/order_screen.dart';
 import '../../screens/attendance_screen.dart';
 import '../../screens/leave_request_screen.dart';
@@ -17,6 +18,8 @@ class AppDrawer extends StatefulWidget {
 
 class _AppDrawerState extends State<AppDrawer> {
   Map<String, dynamic>? _userData;
+  static const String CHECKED_IN_KEY = 'checked_in_status';
+  static const String CHECKED_IN_TIME_KEY = 'checked_in_time';
 
   @override
   void initState() {
@@ -33,6 +36,44 @@ class _AppDrawerState extends State<AppDrawer> {
     }
   }
 
+  Future<bool> _isCheckedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    final checkedInTime = prefs.getInt(CHECKED_IN_TIME_KEY);
+
+    if (checkedInTime != null) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final difference = now - checkedInTime;
+      // Check if 12 hours have passed (12 * 60 * 60 * 1000 milliseconds)
+      if (difference < 12 * 60 * 60 * 1000) {
+        return prefs.getBool(CHECKED_IN_KEY) ?? false;
+      }
+    }
+    return false;
+  }
+
+  void _handleNavigation(BuildContext context, Widget screen) async {
+    final isCheckedIn = await _isCheckedIn();
+    if (!isCheckedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Anda harus absen terlebih dahulu'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      Navigator.pop(context);
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const AttendanceScreen()),
+      );
+    } else {
+      Navigator.pop(context);
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => screen),
+      );
+    }
+  }
+
   String _getRoleName() {
     if (_userData != null && _userData!['role'] != null) {
       return _userData!['role']['display_name'] ?? 'Pengguna';
@@ -46,59 +87,28 @@ class _AppDrawerState extends State<AppDrawer> {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          DrawerHeader(
-            decoration: BoxDecoration(
-              color: Colors.blue[700],
+          UserAccountsDrawerHeader(
+            accountName: Text(_userData?['name'] ?? ''),
+            accountEmail: Text(_getRoleName()),
+            currentAccountPicture: CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Text(
+                (_userData?['name'] ?? '')[0].toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
+                ),
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.person, size: 35, color: Colors.blue),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  _userData?['name'] ?? 'Selamat Datang',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  _getRoleName(),
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 14,
-                  ),
-                ),
-              ],
+            decoration: BoxDecoration(
+              color: Colors.green[700],
             ),
           ),
           ListTile(
             leading: const Icon(Icons.home),
             title: const Text('Beranda'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const HomeScreen()),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.shopping_cart),
-            title: const Text('Pesanan'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const OrderScreen()),
-              );
-            },
+            onTap: () => _handleNavigation(context, const HomeScreen()),
           ),
           ListTile(
             leading: const Icon(Icons.calendar_today),
@@ -115,57 +125,29 @@ class _AppDrawerState extends State<AppDrawer> {
           ListTile(
             leading: const Icon(Icons.event_busy),
             title: const Text('Pengajuan Cuti'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const LeaveRequestScreen()),
-              );
-            },
+            onTap: () => _handleNavigation(context, const LeaveRequestScreen()),
           ),
           ListTile(
             leading: const Icon(Icons.history),
             title: const Text('Riwayat'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const HistoryScreen()),
-              );
-            },
+            onTap: () => _handleNavigation(context, const HistoryScreen()),
           ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.settings),
             title: const Text('Pengaturan'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
-            },
+            onTap: () => _handleNavigation(context, const SettingsScreen()),
           ),
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Keluar'),
             onTap: () async {
-              Navigator.pop(context);
-              final success = await AuthService.logout();
-              if (context.mounted && success) {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => LoginScreen()),
-                  (route) => false,
-                );
-              } else if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Gagal logout. Silakan coba lagi.'),
-                  ),
-                );
-              }
+              await AuthService.logout();
+              if (!mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => LoginScreen()),
+                (route) => false,
+              );
             },
           ),
         ],

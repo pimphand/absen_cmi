@@ -67,24 +67,16 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Logo aplikasi
-            Image.asset('assets/logo_splace_screen.png', height: 250),
-            SizedBox(height: 30),
-
-            // Loading indicator
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.green[700]!),
+            Image.asset(
+              'assets/logo_splace_screen.png',
+              height: 250,
             ),
-            SizedBox(height: 20),
-            Text(
-              'Memuat Aplikasi...',
-              style: TextStyle(fontSize: 16, color: const Color(0xFF757575)),
-            ),
+            const SizedBox(height: 20),
+            const CircularProgressIndicator(),
           ],
         ),
       ),
