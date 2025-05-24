@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import '../widgets/common/custom_app_bar.dart';
 import '../widgets/common/app_drawer.dart';
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Beranda'),
+      appBar: const CustomAppBar(title: 'Settings'),
       drawer: const AppDrawer(),
       body: const Center(
-        child: Text('Halaman Beranda'),
+        child: Text('Settings Screen'),
       ),
     );
   }

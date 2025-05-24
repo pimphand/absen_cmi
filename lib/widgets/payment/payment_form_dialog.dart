@@ -33,6 +33,7 @@ class _PaymentFormDialogState extends State<PaymentFormDialog> {
   double initialRemaining = 0;
   double currentRemaining = 0;
   FocusNode? _currentFocus;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -85,74 +86,113 @@ class _PaymentFormDialogState extends State<PaymentFormDialog> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.8,
         ),
-        child: SingleChildScrollView(
-          controller: scrollController,
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              controller: scrollController,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
-                      'Tambah Pembayaran',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Tambah Pembayaran',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed:
+                              _isLoading ? null : () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildRemainingAmountCard(),
+                    const SizedBox(height: 24),
+                    Form(
+                      key: formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildDateField(),
+                          const SizedBox(height: 16),
+                          _buildMethodField(),
+                          const SizedBox(height: 16),
+                          _buildAmountField(),
+                          const SizedBox(height: 24),
+                          _buildImageUploadButton(),
+                          if (selectedImage != null) ...[
+                            const SizedBox(height: 16),
+                            _buildImagePreview(),
+                          ],
+                        ],
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed:
+                              _isLoading ? null : () => Navigator.pop(context),
+                          child: const Text('Batal'),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: _isLoading ? null : _handleSubmit,
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 12),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  ),
+                                )
+                              : const Text('Simpan'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                _buildRemainingAmountCard(),
-                const SizedBox(height: 24),
-                Form(
-                  key: formKey,
+              ),
+            ),
+            if (_isLoading)
+              Container(
+                color: Colors.black.withOpacity(0.3),
+                child: const Center(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildDateField(),
-                      const SizedBox(height: 16),
-                      _buildMethodField(),
-                      const SizedBox(height: 16),
-                      _buildAmountField(),
-                      const SizedBox(height: 24),
-                      _buildImageUploadButton(),
-                      if (selectedImage != null) ...[
-                        const SizedBox(height: 16),
-                        _buildImagePreview(),
-                      ],
+                      CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'Menyimpan...',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Batal'),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: _handleSubmit,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 12),
-                      ),
-                      child: const Text('Simpan'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+              ),
+          ],
         ),
       ),
     );
@@ -376,6 +416,10 @@ class _PaymentFormDialogState extends State<PaymentFormDialog> {
 
   Future<void> _handleSubmit() async {
     if (formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
       try {
         final prefs = await SharedPreferences.getInstance();
         final token = prefs.getString(AuthService.TOKEN_KEY);
@@ -385,6 +429,9 @@ class _PaymentFormDialogState extends State<PaymentFormDialog> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Token tidak ditemukan')),
           );
+          setState(() {
+            _isLoading = false;
+          });
           return;
         }
 
@@ -460,6 +507,12 @@ class _PaymentFormDialogState extends State<PaymentFormDialog> {
         Navigator.of(context).pop();
         // Trigger refresh
         widget.onRefresh();
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }

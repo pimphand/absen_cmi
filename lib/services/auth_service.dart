@@ -5,8 +5,8 @@ import '../config/api_config.dart';
 
 class AuthService {
   // Keys untuk SharedPreferences
-  static const String TOKEN_KEY = 'token';
-  static const String USER_KEY = 'user';
+  static const String TOKEN_KEY = 'auth_token';
+  static const String USER_KEY = 'user_data';
 
   // Autentikasi user dengan username dan password
   Future<Map<String, dynamic>> login(String username, String password) async {
@@ -27,9 +27,8 @@ class AuthService {
 
       if (response.statusCode == 200) {
         // Simpan token dan data user
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(TOKEN_KEY, responseData['token']);
-        await prefs.setString(USER_KEY, jsonEncode(responseData['user']));
+        await saveToken(responseData['token']);
+        await saveUserData(responseData['user']);
 
         print('Login successful: ${responseData['message']}');
 
@@ -64,21 +63,10 @@ class AuthService {
   }
 
   // Logout - Hapus token dan user data
-  Future<void> logout() async {
+  static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(TOKEN_KEY);
     await prefs.remove(USER_KEY);
-
-    // Opsional: Panggil API logout jika diperlukan
-    // final token = await getToken();
-    // if (token != null) {
-    //   await http.post(
-    //     Uri.parse(ApiConfig.logoutEndpoint),
-    //     headers: {
-    //       'Authorization': 'Bearer $token',
-    //     },
-    //   );
-    // }
   }
 
   // Cek apakah user sudah login
@@ -89,17 +77,22 @@ class AuthService {
   }
 
   // Dapatkan token yang tersimpan
-  Future<String?> getToken() async {
+  static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(TOKEN_KEY);
   }
 
   // Dapatkan data user yang tersimpan
-  Future<Map<String, dynamic>?> getUser() async {
+  static Future<Map<String, dynamic>?> getUserData() async {
     final prefs = await SharedPreferences.getInstance();
     final userData = prefs.getString(USER_KEY);
-    if (userData != null && userData.isNotEmpty) {
-      return jsonDecode(userData);
+    if (userData != null) {
+      try {
+        return jsonDecode(userData);
+      } catch (e) {
+        print('Error parsing user data: $e');
+        return null;
+      }
     }
     return null;
   }
@@ -123,5 +116,15 @@ class AuthService {
       print('Error validating token: $e');
       return false;
     }
+  }
+
+  static Future<void> saveToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(TOKEN_KEY, token);
+  }
+
+  static Future<void> saveUserData(Map<String, dynamic> userData) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(USER_KEY, jsonEncode(userData));
   }
 }

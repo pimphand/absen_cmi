@@ -9,6 +9,9 @@ import '../config/api_config.dart';
 import '../services/auth_service.dart';
 
 class AttendanceProvider extends ChangeNotifier {
+  static const String CHECKED_IN_KEY = 'checked_in_status';
+  static const String CHECKED_IN_TIME_KEY = 'checked_in_time';
+
   AttendanceCount? _attendanceCount;
   List<AttendanceHistory> _attendanceHistory = [];
   bool _isLoading = false;
@@ -91,10 +94,9 @@ class AttendanceProvider extends ChangeNotifier {
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
         if (jsonData['data'] != null && jsonData['data']['data'] != null) {
-          _attendanceHistory =
-              (jsonData['data']['data'] as List)
-                  .map((item) => AttendanceHistory.fromJson(item))
-                  .toList();
+          _attendanceHistory = (jsonData['data']['data'] as List)
+              .map((item) => AttendanceHistory.fromJson(item))
+              .toList();
         } else {
           throw Exception('Invalid response format: data not found');
         }
@@ -158,6 +160,12 @@ class AttendanceProvider extends ChangeNotifier {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final jsonData = json.decode(response.body);
+
+        // Store checked-in status and time
+        await prefs.setBool(CHECKED_IN_KEY, true);
+        await prefs.setInt(
+            CHECKED_IN_TIME_KEY, DateTime.now().millisecondsSinceEpoch);
+
         // Refresh attendance count and history after successful check-in
         await Future.wait([fetchAttendanceCount(), fetchAttendanceHistory()]);
         return {

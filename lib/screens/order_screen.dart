@@ -4,109 +4,66 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:absen_cmi/models/order.dart';
 import 'dart:async';
-import 'package:absen_cmi/services/auth_service.dart'; // Assuming this path
-import 'package:absen_cmi/config/api_config.dart'; // Import ApiConfig
+import 'package:absen_cmi/services/auth_service.dart';
+import 'package:absen_cmi/config/api_config.dart';
 import 'package:absen_cmi/widgets/common/custom_app_bar.dart';
 import 'package:absen_cmi/widgets/order/order_list_widget.dart';
+import 'package:absen_cmi/widgets/common/app_drawer.dart';
 
-class OrderScreen extends StatelessWidget {
+class OrderScreen extends StatefulWidget {
   const OrderScreen({Key? key}) : super(key: key);
+
+  @override
+  State<OrderScreen> createState() => _OrderScreenState();
+}
+
+class _OrderScreenState extends State<OrderScreen> {
+  final AuthService _authService = AuthService();
+  Map<String, dynamic>? _userData;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final userData = await AuthService.getUserData();
+    if (mounted) {
+      setState(() {
+        _userData = userData;
+      });
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    try {
+      await AuthService.logout();
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error logging out: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Dep Collector'),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.person,
-                      size: 35,
-                      color: Colors.blue,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    'Dep Collector',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                    ),
-                  ),
-                  Text(
-                    'collector@example.com',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.dashboard),
-              title: const Text('Dashboard'),
-              onTap: () {
-                Navigator.pop(context);
-                // Navigate to dashboard
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.shopping_cart),
-              title: const Text('Orders'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.payment),
-              title: const Text('Payments'),
-              onTap: () {
-                Navigator.pop(context);
-                // Navigate to payments
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.people),
-              title: const Text('Customers'),
-              onTap: () {
-                Navigator.pop(context);
-                // Navigate to customers
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.pop(context);
-                // Navigate to settings
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Logout'),
-              onTap: () {
-                Navigator.pop(context);
-                // Handle logout
-              },
-            ),
-          ],
-        ),
+      key: _scaffoldKey,
+      appBar: CustomAppBar(
+        title: 'Dep Collector',
+        scaffoldKey: _scaffoldKey,
       ),
-      body: const OrderListWidget(),
+      drawer: const AppDrawer(),
+      body: _userData == null
+          ? const Center(child: CircularProgressIndicator())
+          : const OrderListWidget(),
     );
   }
 }

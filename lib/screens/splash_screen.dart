@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
+import 'attendance_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
@@ -11,6 +13,8 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   final AuthService _authService = AuthService();
+  static const String CHECKED_IN_KEY = 'checked_in_status';
+  static const String CHECKED_IN_TIME_KEY = 'checked_in_time';
 
   @override
   void initState() {
@@ -18,9 +22,24 @@ class _SplashScreenState extends State<SplashScreen> {
     _checkLoginStatus();
   }
 
+  Future<bool> _isCheckedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    final checkedInTime = prefs.getInt(CHECKED_IN_TIME_KEY);
+
+    if (checkedInTime != null) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final difference = now - checkedInTime;
+      // Check if 12 hours have passed (12 * 60 * 60 * 1000 milliseconds)
+      if (difference < 12 * 60 * 60 * 1000) {
+        return prefs.getBool(CHECKED_IN_KEY) ?? false;
+      }
+    }
+    return false;
+  }
+
   Future<void> _checkLoginStatus() async {
     // Simulasi splash screen minimal 2 detik
-    await Future.delayed(Duration(seconds: 3));
+    await Future.delayed(Duration(seconds: 2));
 
     bool isLoggedIn = await _authService.isLoggedIn();
 
@@ -28,14 +47,20 @@ class _SplashScreenState extends State<SplashScreen> {
 
     // Navigate based on login status
     if (isLoggedIn) {
-      // Tanpa validasi token, langsung ke home screen
-      Navigator.of(
-        context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => HomeScreen()));
+      bool isCheckedIn = await _isCheckedIn();
+      if (isCheckedIn) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => HomeScreen()),
+        );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => AttendanceScreen()),
+        );
+      }
     } else {
-      Navigator.of(
-        context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => LoginScreen()));
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => LoginScreen()),
+      );
     }
   }
 
@@ -56,8 +81,6 @@ class _SplashScreenState extends State<SplashScreen> {
               valueColor: AlwaysStoppedAnimation<Color>(Colors.green[700]!),
             ),
             SizedBox(height: 20),
-
-            // Text loading
             Text(
               'Memuat Aplikasi...',
               style: TextStyle(fontSize: 16, color: const Color(0xFF757575)),

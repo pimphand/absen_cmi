@@ -27,7 +27,7 @@ void main() async {
           ChangeNotifierProvider(create: (_) => AttendanceProvider())
         ],
         child: MaterialApp(
-          title: 'Absensi CMI',
+          title: 'Cikurai Mediatama',
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
             primaryColor: Colors.green[700],

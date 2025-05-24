@@ -30,6 +30,7 @@ class OrderDetailScreen extends StatefulWidget {
 class _OrderDetailScreenState extends State<OrderDetailScreen> {
   User? _user;
   bool _isLoading = true;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -44,11 +45,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
       if (userData != null) {
         final decodedData = jsonDecode(userData);
+        print("User Data: $decodedData");
+        print("Role Data: ${decodedData['role']}");
         setState(() {
           _user = User.fromJson(decodedData);
           _isLoading = false;
         });
       } else {
+        print("No user data found in SharedPreferences");
         setState(() {
           _isLoading = false;
         });
@@ -61,8 +65,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
-  bool get _isDeptCollector =>
-      _user?.roleName.toLowerCase() == 'dept-collector';
+  bool get _isDeptCollector {
+    print("User: $_user");
+    print("User Role: ${_user?.role}");
+    final roleName = _user?.role?['name']?.toString().toLowerCase();
+    print("Role Name: $roleName");
+    return roleName == 'debt-collector';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -109,14 +118,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(widget.order.status),
+                    color:
+                        _getStatusColor(widget.order.status).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: _getStatusColor(widget.order.status),
+                      width: 1,
+                    ),
                   ),
                   child: Text(
                     widget.order.status?.toUpperCase() ?? 'TIDAK DIKETAHUI',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: _getStatusColor(widget.order.status),
                       fontWeight: FontWeight.bold,
+                      fontSize: 13,
                     ),
                   ),
                 ),
@@ -189,47 +204,130 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ),
             const SizedBox(height: 16),
             ...widget.order.items
-                .map((item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                .map((item) => Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
                                   item.name,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
+                                    fontSize: 15,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Text(
-                                      '${item.quantity} x ${OrderDetailScreen.currencyFormat.format(item.price)}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    Text(
-                                      OrderDetailScreen.currencyFormat
-                                          .format(item.total),
-                                      style: const TextStyle(
-                                        color: Colors.green,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue[50],
+                                  borderRadius: BorderRadius.circular(4),
                                 ),
-                              ],
-                            ),
+                                child: Text(
+                                  '${item.quantity} item',
+                                  style: TextStyle(
+                                    color: Colors.blue[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Harga Satuan',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 13,
+                                ),
+                              ),
+                              Text(
+                                OrderDetailScreen.currencyFormat
+                                    .format(item.price),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Subtotal',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 13,
+                                ),
+                              ),
+                              Text(
+                                OrderDetailScreen.currencyFormat
+                                    .format(item.total),
+                                style: const TextStyle(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ))
                 .toList(),
+            const Divider(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Total Item',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  '${widget.order.quantity} item',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Total Harga',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  OrderDetailScreen.currencyFormat
+                      .format(widget.order.totalPrice),
+                  style: const TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -333,26 +431,52 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (context) => PaymentFormDialog(
-              order: widget.order,
-              onRefresh: widget.onRefresh,
-            ),
-          );
-        },
+        onPressed: _isSaving
+            ? null
+            : () async {
+                setState(() {
+                  _isSaving = true;
+                });
+
+                await showDialog(
+                  context: context,
+                  builder: (context) => PaymentFormDialog(
+                    order: widget.order,
+                    onRefresh: () {
+                      widget.onRefresh();
+                      setState(() {
+                        _isSaving = false;
+                      });
+                    },
+                  ),
+                );
+
+                if (mounted) {
+                  setState(() {
+                    _isSaving = false;
+                  });
+                }
+              },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blue,
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
-        child: const Text(
-          'Tambah Pembayaran',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        child: _isSaving
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : const Text(
+                'Tambah Pembayaran',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
       ),
     );
   }
@@ -410,13 +534,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Color _getStatusColor(String? status) {
     switch (status?.toLowerCase()) {
       case 'pending':
-        return Colors.orange;
+        return Colors.orange[700]!;
       case 'processing':
-        return Colors.blue;
+        return Colors.orange[700]!;
       case 'completed':
-        return Colors.green;
+        return Colors.green[700]!;
       case 'cancelled':
-        return Colors.red;
+        return Colors.red[700]!;
       default:
         return Colors.grey;
     }

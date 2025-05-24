@@ -9,77 +9,77 @@ class ActionButtons extends StatelessWidget {
   const ActionButtons({Key? key}) : super(key: key);
 
   Future<void> _handleCheckIn(BuildContext context) async {
+    // Store context.mounted check result
+    if (!context.mounted) return;
+
     try {
       // Request location permission
       final hasPermission = await LocationService.requestPermission();
       if (!hasPermission) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Izin lokasi diperlukan untuk absensi'),
-            ),
-          );
-        }
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Izin lokasi diperlukan untuk absensi'),
+          ),
+        );
         return;
       }
 
       // Show loading dialog
-      if (context.mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder:
-              (context) => const Center(child: CircularProgressIndicator()),
-        );
-      }
+      if (!context.mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) =>
+            const Center(child: CircularProgressIndicator()),
+      );
 
       // Get current location
       final position = await LocationService.getCurrentLocation();
       if (position == null) {
-        if (context.mounted) {
-          Navigator.pop(context); // Close loading dialog
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Gagal mendapatkan lokasi')),
-          );
-        }
+        if (!context.mounted) return;
+        Navigator.of(context).pop(); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal mendapatkan lokasi')),
+        );
         return;
       }
 
       // Perform check-in
-      if (context.mounted) {
-        Navigator.pop(context); // Close loading dialog
-        final result = await context.read<AttendanceProvider>().checkIn(
-          latitude: position.latitude,
-          longitude: position.longitude,
-        );
+      if (!context.mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
 
-        if (result['success'] == true) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(result['message'] ?? 'Check-in berhasil'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-        } else {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(result['message'] ?? 'Check-in gagal'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
+      final result = await context.read<AttendanceProvider>().checkIn(
+            latitude: position.latitude,
+            longitude: position.longitude,
+          );
+
+      if (!context.mounted) return;
+
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Check-in berhasil'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Check-in gagal'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } catch (e) {
-      if (context.mounted) {
-        Navigator.pop(context); // Close loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+      if (!context.mounted) return;
+      // Close loading dialog if it's still showing
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
       }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
     }
   }
 
