@@ -5,6 +5,7 @@ import '../../screens/leave_request_screen.dart';
 import '../../screens/history_screen.dart';
 import '../../screens/settings_screen.dart';
 import '../../screens/home_screen.dart';
+import '../../screens/login_screen.dart';
 import '../../services/auth_service.dart';
 
 class AppDrawer extends StatefulWidget {
@@ -151,9 +152,19 @@ class _AppDrawerState extends State<AppDrawer> {
             title: const Text('Keluar'),
             onTap: () async {
               Navigator.pop(context);
-              await AuthService.logout();
-              if (context.mounted) {
-                Navigator.pushReplacementNamed(context, '/login');
+              final success = await AuthService.logout();
+              if (context.mounted && success) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                  (route) => false,
+                );
+              } else if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Gagal logout. Silakan coba lagi.'),
+                  ),
+                );
               }
             },
           ),

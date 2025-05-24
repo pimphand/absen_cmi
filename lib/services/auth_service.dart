@@ -63,10 +63,33 @@ class AuthService {
   }
 
   // Logout - Hapus token dan user data
-  static Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(TOKEN_KEY);
-    await prefs.remove(USER_KEY);
+  static Future<bool> logout() async {
+    try {
+      final token = await getToken();
+      if (token != null) {
+        final response = await http.post(
+          Uri.parse('${ApiConfig.baseUrl}/logout'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          },
+        );
+
+        if (response.statusCode != 200) {
+          print('Logout API error: ${response.body}');
+          return false;
+        }
+      }
+    } catch (e) {
+      print('Error during logout API call: $e');
+      return false;
+    } finally {
+      // Always clear local storage regardless of API call result
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(TOKEN_KEY);
+      await prefs.remove(USER_KEY);
+    }
+    return true;
   }
 
   // Cek apakah user sudah login
