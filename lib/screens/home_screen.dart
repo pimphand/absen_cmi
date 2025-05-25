@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
-import '../widgets/common/custom_app_bar.dart';
-import '../widgets/common/app_drawer.dart';
+import 'package:flutter_carousel_widget/flutter_carousel_widget.dart';
 import '../config/api_config.dart';
 import '../widgets/product/product_detail_bottom_sheet.dart';
 import '../widgets/cart_badge.dart';
+import '../models/banner.dart' as models;
+import '../services/banner_service.dart';
 import 'cart_screen.dart';
 
 class Product {
@@ -43,13 +44,33 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<Product> products = [];
+  List<models.Banner> banners = [];
   bool isLoading = true;
+  bool isLoadingBanners = true;
   Offset _cartPosition = const Offset(280, 100);
+  int _currentBannerIndex = 0;
 
   @override
   void initState() {
     super.initState();
     fetchProducts();
+    fetchBanners();
+  }
+
+  Future<void> fetchBanners() async {
+    try {
+      final bannerService = BannerService();
+      final loadedBanners = await bannerService.getBanners();
+      setState(() {
+        banners = loadedBanners;
+        isLoadingBanners = false;
+      });
+    } catch (e) {
+      print('Error loading banners: $e');
+      setState(() {
+        isLoadingBanners = false;
+      });
+    }
   }
 
   Future<Map<String, dynamic>> fetchProductDetail(String productId) async {
@@ -152,91 +173,89 @@ class _HomeScreenState extends State<HomeScreen> {
           SafeArea(
             child: Column(
               children: [
-                // Top Banner
+                // Banner Carousel
                 Stack(
                   children: [
                     Container(
                       height: 180,
                       width: double.infinity,
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF1B5E20), Color(0xFF388E3C)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: Padding(
-                        padding:
-                            const EdgeInsets.only(left: 16, top: 32, right: 16),
+                      child: isLoadingBanners
+                          ? const Center(child: CircularProgressIndicator())
+                          : banners.isEmpty
+                              ? Container(
+                                  decoration: const BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Color(0xFF1B5E20),
+                                        Color(0xFF388E3C)
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                  ),
+                                  child: const Center(
+                                    child: Text(
+                                      'No banners available',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                                )
+                              : FlutterCarousel(
+                                  items: banners.map((banner) {
+                                    return Container(
+                                      width: double.infinity,
+                                      decoration: BoxDecoration(
+                                        image: DecorationImage(
+                                          image: NetworkImage(
+                                            '${ApiConfig.cikuraiStorageUrl}${banner.imagePath}',
+                                          ),
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                  options: CarouselOptions(
+                                    height: 180,
+                                    viewportFraction: 1.0,
+                                    autoPlay: true,
+                                    autoPlayInterval:
+                                        const Duration(seconds: 5),
+                                    autoPlayAnimationDuration:
+                                        const Duration(milliseconds: 500),
+                                    autoPlayCurve: Curves.easeInOut,
+                                    onPageChanged: (index, reason) {
+                                      setState(() {
+                                        _currentBannerIndex = index;
+                                      });
+                                    },
+                                  ),
+                                ),
+                    ),
+                    // Banner Indicators
+                    if (!isLoadingBanners && banners.isNotEmpty)
+                      Positioned(
+                        bottom: 10,
+                        left: 0,
+                        right: 0,
                         child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'internet murah',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    'tapi gak murahan',
-                                    style: TextStyle(
-                                      color: Color(0xFFFFEB3B),
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'cikurai',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    'internet service provider',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: banners.asMap().entries.map((entry) {
+                            return Container(
+                              width: 8.0,
+                              height: 8.0,
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 4.0),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: _currentBannerIndex == entry.key
+                                    ? Colors.white
+                                    : Colors.white.withOpacity(0.5),
                               ),
-                            ),
-                          ],
+                            );
+                          }).toList(),
                         ),
                       ),
-                    ),
                     // Status bar icons (mock)
-                    Positioned(
-                      top: 8,
-                      right: 16,
-                      child: Row(
-                        children: const [
-                          Icon(Icons.signal_cellular_alt,
-                              color: Colors.white, size: 18),
-                          SizedBox(width: 4),
-                          Icon(Icons.wifi, color: Colors.white, size: 18),
-                          SizedBox(width: 4),
-                          Icon(Icons.battery_full,
-                              color: Colors.white, size: 18),
-                        ],
-                      ),
-                    ),
-                    Positioned(
-                      top: 8,
-                      left: 16,
-                      child: const Text('11.12',
-                          style: TextStyle(color: Colors.white)),
-                    ),
                   ],
                 ),
                 // Profile Card
