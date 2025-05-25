@@ -61,10 +61,6 @@ class _AppDrawerState extends State<AppDrawer> {
         ),
       );
       Navigator.pop(context);
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const AttendanceScreen()),
-      );
     } else {
       Navigator.pop(context);
       Navigator.push(
@@ -121,11 +117,6 @@ class _AppDrawerState extends State<AppDrawer> {
                     builder: (context) => const AttendanceScreen()),
               );
             },
-          ),
-          ListTile(
-            leading: const Icon(Icons.event_busy),
-            title: const Text('Pengajuan Cuti'),
-            onTap: () => _handleNavigation(context, const LeaveRequestScreen()),
           ),
           ListTile(
             leading: const Icon(Icons.history),

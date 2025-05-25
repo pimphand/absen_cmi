@@ -2,6 +2,16 @@ class ApiConfig {
   // Base URL untuk API
   static const String baseUrl = 'https://absensi.dmpt.my.id/api';
   static const String assetsUrl = 'https://absensi.dmpt.my.id/storage/';
+
+  // Cikurai API
+  static const String cikuraiBaseUrl =
+      'https://cikurai.mandalikaputrabersama.com/api';
+  static const String cikuraiStorageUrl =
+      'https://cikurai.mandalikaputrabersama.com/storage/';
+  static const String cikuraiProductsEndpoint = '$cikuraiBaseUrl/products';
+  static String cikuraiProductDetailEndpoint(String id) =>
+      '$cikuraiBaseUrl/products/$id';
+
   // Endpoint spesifik
   static const String loginEndpoint = '$baseUrl/login';
   static const String logoutEndpoint = '$baseUrl/absen';
