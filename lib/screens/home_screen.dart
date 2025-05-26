@@ -8,6 +8,9 @@ import '../widgets/cart_badge.dart';
 import '../models/banner.dart' as models;
 import '../services/banner_service.dart';
 import 'cart_screen.dart';
+import 'package:logging/logging.dart';
+
+final _logger = Logger('HomeScreen');
 
 class Product {
   final String id;
@@ -20,13 +23,10 @@ class Product {
       required this.packaging,
       required this.image});
   factory Product.fromJson(Map<String, dynamic> json) {
-    print('Creating product from JSON: $json'); // Log the JSON being processed
     final id = json['id']?.toString() ?? '';
     final name = json['name']?.toString() ?? '';
     final packaging = json['packaging']?.toString() ?? '';
     final image = json['image']?.toString() ?? '';
-    print(
-        'Parsed values - ID: $id, Name: $name, Packaging: $packaging, Image: $image'); // Log parsed values
     return Product(
       id: id,
       name: name,
@@ -66,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
         isLoadingBanners = false;
       });
     } catch (e) {
-      print('Error loading banners: $e');
+      _logger.severe('Error loading banners: $e');
       setState(() {
         isLoadingBanners = false;
       });
@@ -77,11 +77,11 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final url =
           'https://cikurai.mandalikaputrabersama.com/api/products/$productId';
-      print('Fetching product detail from: $url');
+      _logger.info('Fetching product detail from: $url');
 
       final response = await http.get(Uri.parse(url));
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
+      _logger.info('Response status: ${response.statusCode}');
+      _logger.info('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
@@ -132,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       throw Exception('Gagal memuat detail produk: ${response.statusCode}');
     } catch (e) {
-      print('Error in fetchProductDetail: $e');
+      _logger.severe('Error in fetchProductDetail: $e');
       throw Exception('Terjadi kesalahan: $e');
     }
   }
@@ -142,19 +142,20 @@ class _HomeScreenState extends State<HomeScreen> {
         await http.get(Uri.parse(ApiConfig.cikuraiProductsEndpoint));
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      print('API Response: ${response.body}'); // Log full response
+      _logger.info('API Response: ${response.body}'); // Log full response
       final List<Product> loaded = (data['data'] as List).map((e) {
-        print('Processing product: $e'); // Log each product data
+        _logger.info('Processing product: $e'); // Log each product data
         return Product.fromJson(e);
       }).toList();
-      print(
+      _logger.info(
           'Loaded Products: ${loaded.map((p) => 'ID: ${p.id}, Name: ${p.name}').join('\n')}'); // Log each product
       setState(() {
         products = loaded.take(8).toList(); // tampilkan 8 produk saja
         isLoading = false;
       });
     } else {
-      print('Error fetching products: ${response.statusCode}'); // Log error
+      _logger.severe(
+          'Error fetching products: ${response.statusCode}'); // Log error
       setState(() {
         isLoading = false;
       });
@@ -398,9 +399,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             return GestureDetector(
                               onTap: () {
                                 try {
-                                  print('Product tapped: ${p.name}');
-                                  print('Product ID: ${p.id}');
-                                  print('Product image: ${p.image}');
+                                  _logger.info('Product tapped: ${p.name}');
+                                  _logger.info('Product ID: ${p.id}');
+                                  _logger.info('Product image: ${p.image}');
 
                                   if (p.id == null || p.id.isEmpty) {
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -420,7 +421,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                             productId: p.id),
                                   );
                                 } catch (e) {
-                                  print('Error showing product detail: $e');
+                                  _logger.severe(
+                                      'Error showing product detail: $e');
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text('Terjadi kesalahan: $e'),
