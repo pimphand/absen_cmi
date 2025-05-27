@@ -1,11 +1,11 @@
 import 'dart:convert';
+import 'package:absen_cmi/config/api_config.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/banner.dart';
 
 class BannerService {
-  static const String _baseUrl =
-      'https://cikurai.mandalikaputrabersama.com/api';
+  static const String _baseUrl = ApiConfig.cikuraiBaseUrl;
   static const String _cacheKey = 'cached_banners';
   static const String _cacheTimestampKey = 'banners_cache_timestamp';
 

@@ -7,8 +7,8 @@ class ApiConfig {
   static const String cikuraiBaseUrl =
       'https://cikurai.mandalikaputrabersama.com/api';
   static const String cikuraiStorageUrl =
-      'https://cikurai.mandalikaputrabersama.com/storage/';
-  static const String cikuraiProductsEndpoint = '$cikuraiBaseUrl/products';
+      'https://pub-c73a61cdd96c4868a7ef3bceafbaeef9.r2.dev/';
+  static const String cikuraiProductsEndpoint = '$baseUrl/products';
   static String cikuraiProductDetailEndpoint(String id) =>
       '$cikuraiBaseUrl/products/$id';
 

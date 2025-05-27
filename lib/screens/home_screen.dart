@@ -9,6 +9,7 @@ import '../models/banner.dart' as models;
 import '../services/banner_service.dart';
 import 'cart_screen.dart';
 import 'package:logging/logging.dart';
+import '../utils/image_utils.dart';
 
 final _logger = Logger('HomeScreen');
 
@@ -433,12 +434,16 @@ class _HomeScreenState extends State<HomeScreen> {
                               },
                               child: _ProductCard(
                                 key: ValueKey(p.image),
-                                image:
-                                    '${ApiConfig.cikuraiStorageUrl}${p.image}',
+                                image: p.image,
                                 title: p.name,
                                 size: 'Ukuran: ${p.packaging}',
                                 sold: '',
                                 imageHeight: 80,
+                                onError: (error) {
+                                  print('Error loading image: $error');
+                                  // Fallback to original PNG if webp fails
+                                  return '${ApiConfig.cikuraiStorageUrl}${p.image}';
+                                },
                               ),
                             );
                           },
@@ -594,6 +599,8 @@ class _ProductCard extends StatelessWidget {
   final String sold;
   final double imageHeight;
   final Key? key;
+  final Function(dynamic)? onError;
+
   const _ProductCard({
     this.key,
     required this.image,
@@ -601,7 +608,9 @@ class _ProductCard extends StatelessWidget {
     required this.size,
     required this.sold,
     this.imageHeight = 90,
+    this.onError,
   }) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -632,8 +641,18 @@ class _ProductCard extends StatelessWidget {
               height: imageHeight,
               width: 160,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-                  const Icon(Icons.broken_image),
+              errorBuilder: (context, error, stackTrace) {
+                print('Error loading image: $error');
+                if (onError != null) {
+                  onError!(error);
+                }
+                return Container(
+                  height: imageHeight,
+                  width: 160,
+                  color: Colors.grey[200],
+                  child: const Icon(Icons.broken_image, color: Colors.grey),
+                );
+              },
             ),
           ),
           Padding(
