@@ -19,7 +19,12 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _checkLoginStatus();
+    // Navigate to main screen after 2 seconds
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/main');
+      }
+    });
   }
 
   Future<bool> _isCheckedIn() async {

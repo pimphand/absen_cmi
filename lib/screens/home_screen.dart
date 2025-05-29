@@ -10,6 +10,12 @@ import '../services/banner_service.dart';
 import 'cart_screen.dart';
 import 'package:logging/logging.dart';
 import '../utils/image_utils.dart';
+import 'attendance_screen.dart';
+import '../services/auth_service.dart';
+import '../widgets/custom_bottom_navigation.dart';
+import 'history_screen.dart';
+import 'blacklist_screen.dart';
+import 'profile_screen.dart';
 
 final _logger = Logger('HomeScreen');
 
@@ -50,10 +56,117 @@ class _HomeScreenState extends State<HomeScreen> {
   bool isLoadingBanners = true;
   Offset _cartPosition = const Offset(280, 100);
   int _currentBannerIndex = 0;
+  int _currentIndex = 0;
+  Map<String, dynamic>? _userData;
+  bool _isSales = false;
+
+  Future<bool> checkInStatus() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/absen-check-in'),
+        headers: {
+          'Authorization': 'Bearer ${ApiConfig.token}',
+          'Accept': 'application/json',
+        },
+      );
+
+      _logger.info('Check-in status response code: ${response.statusCode}');
+      _logger.info('Check-in status response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        // Check if checked_in is explicitly true
+        if (data['checked_in'] == true) {
+          _logger.info('User has checked in today');
+          return true;
+        }
+
+        // If checked_in is false or not set, redirect to attendance
+        _logger.info('User has not checked in today');
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const AttendanceScreen()),
+          );
+        }
+        return false;
+      }
+
+      // If unauthorized (401), redirect to attendance
+      if (response.statusCode == 401) {
+        _logger.warning('Unauthorized access');
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const AttendanceScreen()),
+          );
+        }
+        return false;
+      }
+
+      // For other errors, log but don't redirect
+      _logger.warning('Error checking in status: ${response.statusCode}');
+      return true;
+    } catch (e) {
+      _logger.severe('Exception in checkInStatus: $e');
+      // On exception, don't redirect to prevent loops
+      return true;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    _loadToken();
+    _loadUserData();
+  }
+
+  Future<void> _loadToken() async {
+    final token = await AuthService.getToken();
+    if (token != null) {
+      ApiConfig.token = token;
+    }
+    _initializeData();
+  }
+
+  Future<void> _loadUserData() async {
+    final userData = await AuthService.getUserData();
+    if (mounted) {
+      setState(() {
+        _userData = userData;
+        // Check if user role is sales
+        _isSales =
+            _userData?['role']?['name']?.toString().toLowerCase() == 'sales';
+      });
+    }
+  }
+
+  Future<void> _initializeData() async {
+    // Check if user is logged in
+    if (ApiConfig.token == null || ApiConfig.token!.isEmpty) {
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const AttendanceScreen()),
+        );
+        return;
+      }
+    }
+
+    // Check if user has checked in
+    final hasCheckedIn = await checkInStatus();
+    if (!hasCheckedIn) {
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const AttendanceScreen()),
+        );
+        return;
+      }
+    }
+
+    // Only fetch products and banners if user has checked in
     fetchProducts();
     fetchBanners();
   }
@@ -163,6 +276,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _onNavTap(int index) {
+    // Remove this method as it's now handled by MainScreen
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
@@ -208,9 +325,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       width: double.infinity,
                                       decoration: BoxDecoration(
                                         image: DecorationImage(
-                                          image: NetworkImage(
-                                            '${ApiConfig.cikuraiStorageUrl}${banner.imagePath}',
-                                          ),
+                                          image: NetworkImage(banner.url),
                                           fit: BoxFit.cover,
                                         ),
                                       ),
@@ -289,18 +404,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
+                          children: [
                             Text(
-                              'Asep Sanjaya',
-                              style: TextStyle(
+                              _userData?['name'] ?? 'Nama Pengguna',
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
                               ),
                             ),
-                            const Text(
-                              'Sales Marketing',
-                              style: TextStyle(
+                            Text(
+                              _userData?['role']?['display_name'] ??
+                                  'Role Pengguna',
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 14,
                               ),
@@ -419,7 +535,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     backgroundColor: Colors.transparent,
                                     builder: (context) =>
                                         ProductDetailBottomSheet(
-                                            productId: p.id),
+                                            productId: p.id, isSales: _isSales),
                                   );
                                 } catch (e) {
                                   _logger.severe(
@@ -452,100 +568,110 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          // Draggable Cart Icon
-          Positioned(
-            left: _cartPosition.dx.clamp(0.0, screenSize.width - 60),
-            top: _cartPosition.dy.clamp(0.0, screenSize.height - 60),
-            child: Draggable(
-              feedback: Material(
-                elevation: 4.0,
-                borderRadius: BorderRadius.circular(30),
+          // Draggable Cart Icon - Only show for sales role
+          if (_isSales)
+            Positioned(
+              left: _cartPosition.dx.clamp(0.0, screenSize.width - 60),
+              top: _cartPosition.dy.clamp(0.0, screenSize.height - 60),
+              child: Draggable(
+                feedback: Material(
+                  elevation: 4.0,
+                  borderRadius: BorderRadius.circular(30),
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF217A3B),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: const Icon(
+                      Icons.shopping_cart,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                  ),
+                ),
+                childWhenDragging: Container(),
+                onDragEnd: (details) {
+                  setState(() {
+                    _cartPosition = Offset(
+                      details.offset.dx.clamp(0.0, screenSize.width - 60),
+                      details.offset.dy.clamp(0.0, screenSize.height - 60),
+                    );
+                  });
+                },
                 child: Container(
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
                     color: const Color(0xFF217A3B),
                     borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  child: const Icon(
-                    Icons.shopping_cart,
-                    color: Colors.white,
-                    size: 30,
-                  ),
-                ),
-              ),
-              childWhenDragging: Container(),
-              onDragEnd: (details) {
-                setState(() {
-                  _cartPosition = Offset(
-                    details.offset.dx.clamp(0.0, screenSize.width - 60),
-                    details.offset.dy.clamp(0.0, screenSize.height - 60),
-                  );
-                });
-              },
-              child: Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF217A3B),
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(30),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CartScreen(),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(30),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CartScreen(),
+                          ),
+                        );
+                      },
+                      child: Center(
+                        child: CartBadge(
+                          child: const Icon(Icons.shopping_cart,
+                              color: Colors.white, size: 30),
+                          badgeColor: Colors.red,
+                          textColor: Colors.white,
                         ),
-                      );
-                    },
-                    child: Center(
-                      child: CartBadge(
-                        child: const Icon(Icons.shopping_cart,
-                            color: Colors.white, size: 30),
-                        badgeColor: Colors.red,
-                        textColor: Colors.white,
                       ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF217A3B),
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Beranda',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'Historis',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.block),
-            label: 'CS Blacklist',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Akun',
-          ),
-        ],
+      bottomNavigationBar: CustomBottomNavigation(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+          switch (index) {
+            case 0:
+              // Already on home screen
+              break;
+            case 1:
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HistoryScreen()),
+              );
+              break;
+            case 2:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const BlacklistScreen()),
+              );
+              break;
+            case 3:
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+              break;
+          }
+        },
       ),
     );
   }

@@ -3,6 +3,11 @@ class ApiConfig {
   static const String baseUrl = 'https://absensi.dmpt.my.id/api';
   static const String assetsUrl = 'https://absensi.dmpt.my.id/storage/';
 
+  // Token management
+  static String? _token;
+  static String get token => _token ?? '';
+  static set token(String value) => _token = value;
+
   // Cikurai API
   static const String cikuraiBaseUrl =
       'https://cikurai.mandalikaputrabersama.com/api';

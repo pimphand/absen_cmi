@@ -7,6 +7,8 @@ class AuthService {
   // Keys untuk SharedPreferences
   static const String TOKEN_KEY = 'auth_token';
   static const String USER_KEY = 'user_data';
+  static const String CHECKED_IN_KEY = 'checked_in_status';
+  static const String CHECKED_IN_TIME_KEY = 'checked_in_time';
 
   // Autentikasi user dengan username dan password
   Future<Map<String, dynamic>> login(String username, String password) async {
@@ -88,6 +90,8 @@ class AuthService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(TOKEN_KEY);
       await prefs.remove(USER_KEY);
+      await prefs.remove(CHECKED_IN_KEY);
+      await prefs.remove(CHECKED_IN_TIME_KEY);
     }
     return true;
   }
@@ -144,6 +148,7 @@ class AuthService {
   static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(TOKEN_KEY, token);
+    ApiConfig.token = token; // Set token in ApiConfig
   }
 
   static Future<void> saveUserData(Map<String, dynamic> userData) async {

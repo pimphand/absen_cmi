@@ -8,10 +8,12 @@ import '../../services/cart_service.dart';
 
 class ProductDetailBottomSheet extends StatelessWidget {
   final String productId;
+  final bool isSales;
 
   const ProductDetailBottomSheet({
     Key? key,
     required this.productId,
+    required this.isSales,
   }) : super(key: key);
 
   Future<Map<String, dynamic>> fetchProductDetail(String productId) async {
@@ -120,6 +122,7 @@ class ProductDetailBottomSheet extends StatelessWidget {
               product: product,
               recommended: recommended,
               scrollController: scrollController,
+              isSales: isSales,
             );
           },
         ),
@@ -162,12 +165,14 @@ class ProductDetailContent extends StatelessWidget {
   final Map<String, dynamic> product;
   final List<Map<String, dynamic>> recommended;
   final ScrollController scrollController;
+  final bool isSales;
 
   const ProductDetailContent({
     Key? key,
     required this.product,
     required this.recommended,
     required this.scrollController,
+    required this.isSales,
   }) : super(key: key);
 
   Future<void> _addToCart(BuildContext context) async {
@@ -254,22 +259,23 @@ class ProductDetailContent extends StatelessWidget {
               product['image'].toString().isNotEmpty)
             ProductDetailImage(image: product['image'].toString()),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () => _addToCart(context),
-              icon: const Icon(Icons.shopping_cart),
-              label: const Text('Tambah ke Keranjang'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF217A3B),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+          if (isSales)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _addToCart(context),
+                icon: const Icon(Icons.shopping_cart),
+                label: const Text('Tambah ke Keranjang'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF217A3B),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ),
-          ),
           if (recommended.isNotEmpty)
             RecommendedProductsList(recommended: recommended),
         ],

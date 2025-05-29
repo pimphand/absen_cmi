@@ -94,9 +94,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             _buildOrderItems(),
             if (_isDeptCollector) ...[
               const SizedBox(height: 16),
-              _buildPaymentInfo(context),
-              const SizedBox(height: 16),
               _buildCollectorButton(context),
+              const SizedBox(height: 16),
+              _buildPaymentInfo(context),
             ],
           ],
         ),

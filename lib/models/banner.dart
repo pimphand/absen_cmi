@@ -1,34 +1,24 @@
 class Banner {
   final String id;
-  final String title;
-  final String code;
-  final String description;
-  final String? url;
-  final String isPublish;
-  final String type;
-  final String imagePath;
+  final String url;
 
   Banner({
     required this.id,
-    required this.title,
-    required this.code,
-    required this.description,
-    this.url,
-    required this.isPublish,
-    required this.type,
-    required this.imagePath,
+    required this.url,
   });
 
   factory Banner.fromJson(Map<String, dynamic> json) {
+    // Ensure we have valid values for both id and url
+    final id = json['id']?.toString();
+    final url = json['url']?.toString();
+
+    if (id == null || url == null) {
+      throw FormatException('Invalid banner data: id or url is null');
+    }
+
     return Banner(
-      id: json['id']?.toString() ?? '',
-      title: json['title']?.toString() ?? '',
-      code: json['code']?.toString() ?? '',
-      description: json['description']?.toString() ?? '',
-      url: json['url']?.toString(),
-      isPublish: json['is_publish']?.toString() ?? '0',
-      type: json['type']?.toString() ?? '',
-      imagePath: json['image']?['path']?.toString() ?? '',
+      id: id,
+      url: url,
     );
   }
 }
