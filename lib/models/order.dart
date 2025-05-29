@@ -29,7 +29,7 @@ class Order {
 
   factory Order.fromJson(Map<String, dynamic> json) {
     return Order(
-      id: json['id'],
+      id: json['id'] ?? 0,
       sales: json['sales'] != null ? Sales.fromJson(json['sales']) : null,
       customer:
           json['customer'] != null ? Customer.fromJson(json['customer']) : null,
@@ -43,14 +43,14 @@ class Order {
           [],
       quantity: json['quantity'] ?? 0,
       totalPrice: json['total_price'] ?? 0,
-      status: json['status'],
+      status: json['status']?.toString(),
       paid: json['paid'] ?? 0,
       remaining: json['remaining'] ?? 0,
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
+          ? DateTime.parse(json['created_at'].toString())
           : null,
       updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
+          ? DateTime.parse(json['updated_at'].toString())
           : null,
     );
   }
@@ -71,10 +71,12 @@ class Sales {
 
   factory Sales.fromJson(Map<String, dynamic> json) {
     return Sales(
-      id: json['id'],
-      name: json['name'],
-      email: json['email'],
-      role: Role.fromJson(json['role']),
+      id: json['id'] ?? 0,
+      name: json['name']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      role: json['role'] != null
+          ? Role.fromJson(json['role'])
+          : Role(name: '', displayName: ''),
     );
   }
 }
@@ -90,8 +92,8 @@ class Role {
 
   factory Role.fromJson(Map<String, dynamic> json) {
     return Role(
-      name: json['name'],
-      displayName: json['display_name'],
+      name: json['name']?.toString() ?? '',
+      displayName: json['display_name']?.toString() ?? '',
     );
   }
 }
@@ -123,16 +125,16 @@ class Customer {
 
   factory Customer.fromJson(Map<String, dynamic> json) {
     return Customer(
-      id: json['id'],
-      name: json['name'],
-      phone: json['phone'],
-      address: json['address'],
-      storeName: json['store_name'],
-      storeAddress: json['store_address'],
-      city: json['city'],
-      state: json['state'],
-      storePhoto: json['store_photo'],
-      ownerPhoto: json['owner_photo'],
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      phone: json['phone']?.toString() ?? '',
+      address: json['address']?.toString() ?? '',
+      storeName: json['store_name']?.toString() ?? '',
+      storeAddress: json['store_address']?.toString(),
+      city: json['city']?.toString() ?? '',
+      state: json['state']?.toString() ?? '',
+      storePhoto: json['store_photo']?.toString(),
+      ownerPhoto: json['owner_photo']?.toString(),
     );
   }
 }
@@ -158,13 +160,13 @@ class OrderItem {
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
     return OrderItem(
-      id: json['id'],
-      brand: json['brand'],
-      name: json['name'],
-      quantity: json['quantity'],
-      total: json['total'],
-      price: json['price'],
-      returns: json['returns'],
+      id: json['id']?.toString() ?? '',
+      brand: json['brand']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      quantity: json['quantity'] ?? 0,
+      total: json['total'] ?? 0,
+      price: json['price'] ?? 0,
+      returns: json['returns'] ?? 0,
     );
   }
 }
@@ -206,23 +208,26 @@ class Payment {
 
   factory Payment.fromJson(Map<String, dynamic> json) {
     return Payment(
-      id: json['id'],
-      orderId: json['order_id'],
-      method: json['method'],
-      date: DateTime.parse(json['date']),
-      amount: json['amount'],
-      file: json['file'],
+      id: json['id']?.toString() ?? '',
+      orderId: json['order_id'] ?? 0,
+      method: json['method']?.toString() ?? '',
+      date: DateTime.parse(
+          json['date']?.toString() ?? DateTime.now().toIso8601String()),
+      amount: json['amount'] ?? 0,
       userId: json['user_id'],
-      remaining: json['remaining'],
-      customer: json['customer'],
-      collector: json['collector'],
-      admin: json['admin'],
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      remaining: json['remaining'] ?? 0,
+      customer: json['customer']?.toString() ?? '',
+      file: json['file']?.toString(),
+      collector: json['collector']?.toString() ?? '',
+      admin: json['admin']?.toString(),
+      createdAt: DateTime.parse(
+          json['created_at']?.toString() ?? DateTime.now().toIso8601String()),
+      updatedAt: DateTime.parse(
+          json['updated_at']?.toString() ?? DateTime.now().toIso8601String()),
       lastPaymentDate: json['last_payment_date'] != null
-          ? DateTime.parse(json['last_payment_date'])
+          ? DateTime.parse(json['last_payment_date'].toString())
           : null,
-      customerId: json['customer_id'],
+      customerId: json['customer_id']?.toString(),
     );
   }
 }

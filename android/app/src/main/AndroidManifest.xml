@@ -15,7 +15,7 @@
     
     <!-- Your existing application configuration -->
     <application
-        android:label="Cikurai Mediatama"
+        android:label="Cikurai Mediatama Indonesia"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <!-- Your existing activity and other configurations -->

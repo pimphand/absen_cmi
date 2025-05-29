@@ -37,7 +37,7 @@ void main() async {
           ChangeNotifierProvider(create: (_) => AttendanceProvider())
         ],
         child: MaterialApp(
-          title: 'Cikurai Mediatama',
+          title: 'Cikurai Mediatama Indonesia',
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
             primaryColor: Colors.green[700],

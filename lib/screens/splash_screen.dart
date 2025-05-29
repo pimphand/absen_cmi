@@ -19,12 +19,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Navigate to main screen after 2 seconds
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/main');
-      }
-    });
+    _checkLoginStatus();
   }
 
   Future<bool> _isCheckedIn() async {
@@ -43,29 +38,41 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkLoginStatus() async {
-    // Simulasi splash screen minimal 2 detik
-    await Future.delayed(Duration(seconds: 2));
+    try {
+      // Check login status
+      bool isLoggedIn = await _authService.isLoggedIn();
 
-    bool isLoggedIn = await _authService.isLoggedIn();
+      if (!mounted) return;
 
-    if (!mounted) return;
+      if (isLoggedIn) {
+        // If logged in, check attendance status
+        bool isCheckedIn = await _isCheckedIn();
 
-    // Navigate based on login status
-    if (isLoggedIn) {
-      bool isCheckedIn = await _isCheckedIn();
-      if (isCheckedIn) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => HomeScreen()),
-        );
+        if (isCheckedIn) {
+          // If already checked in, go to home screen
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => HomeScreen()),
+          );
+        } else {
+          // If not checked in, go to attendance screen
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => AttendanceScreen()),
+          );
+        }
       } else {
+        // If not logged in, go to login screen
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => AttendanceScreen()),
+          MaterialPageRoute(builder: (_) => LoginScreen()),
         );
       }
-    } else {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => LoginScreen()),
-      );
+    } catch (e) {
+      print('Error checking login status: $e');
+      // If there's an error, redirect to login screen
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => LoginScreen()),
+        );
+      }
     }
   }
 
