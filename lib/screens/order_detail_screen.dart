@@ -7,6 +7,7 @@ import 'package:absen_cmi/models/order.dart';
 import 'package:absen_cmi/models/user_model.dart';
 import 'package:absen_cmi/services/auth_service.dart';
 import 'package:absen_cmi/widgets/payment/payment_form_dialog.dart';
+import 'package:absen_cmi/widgets/shipping/shipping_success_dialog.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final Order order;
@@ -45,12 +46,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
       if (userData != null) {
         final decodedData = jsonDecode(userData);
-        print("User Data: $decodedData");
-        print("Role Data: ${decodedData['role']}");
+        print("Loading user data...");
+        print("Raw user data: $decodedData");
+        print("Role data: ${decodedData['role']}");
+
         setState(() {
           _user = User.fromJson(decodedData);
           _isLoading = false;
         });
+
+        // Print after setting state to verify the data
+        print("User object after setting state: $_user");
+        print("User role after setting state: ${_user?.role}");
       } else {
         print("No user data found in SharedPreferences");
         setState(() {
@@ -73,8 +80,43 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return roleName == 'debt-collector';
   }
 
+  bool get _isDriver {
+    print("Checking driver role...");
+    print("User data: $_user");
+    print("User role: ${_user?.role}");
+    final roleName = _user?.role?['name']?.toString().toLowerCase();
+    print("Role name: $roleName");
+    print("Is driver: ${roleName == 'driver'}");
+    return roleName == 'driver';
+  }
+
+  bool get _isDeveloperOrDriver {
+    final roleName = _user?.role?['name']?.toString().toLowerCase();
+    return roleName == 'developer' || roleName == 'driver';
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final orderStatus = widget.order.status?.toLowerCase();
+    final isDriver = _isDriver;
+    final shouldShowButton = isDriver && orderStatus == 'processing';
+
+    print("=== DEBUG INFO ===");
+    print("Order ID: ${widget.order.id}");
+    print("Order Status (original): ${widget.order.status}");
+    print("Order Status (lowercase): $orderStatus");
+    print("Is Driver: $isDriver");
+    print("Should Show Button: $shouldShowButton");
+    print("User Role Object: ${_user?.role}");
+    print("User Role Name: ${_user?.role?['name']}");
+    print("=================");
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Pesanan #${widget.order.id}'),
@@ -105,6 +147,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildStatusCard() {
+    final orderStatus = widget.order.status?.toLowerCase();
+    final shouldShowButton = orderStatus == 'processing';
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -154,6 +199,45 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     OrderDetailScreen.currencyFormat
                         .format(widget.order.totalPrice)),
               ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => ShippingSuccessDialog(
+                      ids: widget.order.items.map((item) => item.id).toList(),
+                      quantities: widget.order.items
+                          .map((item) => item.quantity)
+                          .toList(),
+                      items: widget.order.items
+                          .map((item) => {
+                                'name': item.name,
+                                'brand': item.brand,
+                              })
+                          .toList(),
+                      onSuccess: () {
+                        widget.onRefresh();
+                      },
+                      orderId: widget.order.id.toString(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: const Text(
+                  'Proses',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color.fromARGB(255, 255, 255, 255),
+                  ),
+                ),
+              ),
             ),
           ],
         ),
