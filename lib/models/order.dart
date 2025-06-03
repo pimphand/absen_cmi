@@ -11,6 +11,10 @@ class Order {
   final int remaining;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final Sales? shipper;
+  final DateTime? shippedAt;
+  final String? shippingProof;
+  final String? bukti_pengiriman;
 
   Order({
     required this.id,
@@ -25,6 +29,10 @@ class Order {
     required this.remaining,
     this.createdAt,
     this.updatedAt,
+    this.shipper,
+    this.shippedAt,
+    this.shippingProof,
+    this.bukti_pengiriman,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -52,6 +60,12 @@ class Order {
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'].toString())
           : null,
+      shipper: json['shipper'] != null ? Sales.fromJson(json['shipper']) : null,
+      shippedAt: json['shipped_at'] != null
+          ? DateTime.parse(json['shipped_at'].toString())
+          : null,
+      shippingProof: json['shipping_proof']?.toString(),
+      bukti_pengiriman: json['bukti_pengiriman']?.toString(),
     );
   }
 }
