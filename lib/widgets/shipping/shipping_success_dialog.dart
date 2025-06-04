@@ -121,6 +121,10 @@ class _ShippingSuccessDialogState extends State<ShippingSuccessDialog> {
           if (!mounted) return;
           widget.onSuccess();
           Navigator.of(context).pop();
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/history',
+            (route) => false,
+          );
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Status pengiriman berhasil diperbarui'),
