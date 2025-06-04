@@ -123,81 +123,43 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _createOrder() async {
     if (_selectedCustomer == null || _cartItems.isEmpty) {
-      print('Order creation failed: No customer selected or cart is empty');
       return;
     }
-
-    if (_selectedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Foto tidak boleh kosong'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    print('Starting order creation process...');
-    print(
-        'Selected Customer: ${_selectedCustomer!.storeName} (ID: ${_selectedCustomer!.id})');
-    print('Cart Items: ${_cartItems.length} items');
-    _cartItems.forEach((item) {
-      print('- ${item.name}: ${item.quantity}x @ Rp ${item.price}');
-    });
-    print('Total Amount: Rp ${_total}');
 
     setState(() {
       _isSubmitting = true;
     });
 
     try {
-      print('Sending order request to API...');
-
-      // Create multipart request
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('${ApiConfig.baseUrl}/orders'),
       );
 
-      // Add headers
       request.headers.addAll({
         'Authorization': 'Bearer ${ApiConfig.token}',
         'Accept': 'application/json',
       });
 
-      // Add fields
       request.fields['customer_id'] = _selectedCustomer!.id;
-      request.fields['items'] = jsonEncode(_cartItems
-          .map((item) => {
-                'product_id': item.productId,
-                'quantity': item.quantity,
-              })
-          .toList());
 
-      // Add image file
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'photo',
-          _selectedImage!.path,
-        ),
-      );
+      // Format items data according to Laravel validation rules
+      for (var i = 0; i < _cartItems.length; i++) {
+        request.fields['product_id[$i]'] = _cartItems[i].productId;
+        request.fields['quantity[$i]'] = _cartItems[i].quantity.toString();
+      }
 
-      // Send request
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
-      print('API Response Status: ${response.statusCode}');
-      print('API Response Body: ${response.body}');
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
-        print('Order created successfully!');
-        // Clear cart after successful order
         await _cartService.clearCart();
-        print('Cart cleared successfully');
 
         if (!mounted) return;
 
-        // Show success notification
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Row(
@@ -217,29 +179,32 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
         );
 
-        print('Success notification shown');
-        // Navigate to history screen
         if (!mounted) return;
         Navigator.of(context).pushNamedAndRemoveUntil(
           '/history',
           (route) => false,
         );
-        print('Navigated to history screen');
       } else {
         final errorData = jsonDecode(response.body);
-        print('Order creation failed with status ${response.statusCode}');
-        print('Error message: ${errorData['message']}');
+        String errorMessage = 'Terjadi kesalahan saat membuat pesanan';
+
+        if (errorData['message'] is Map) {
+          final Map<String, dynamic> messageMap = errorData['message'];
+          errorMessage = messageMap.values.first.first.toString();
+        } else if (errorData['message'] is String) {
+          errorMessage = errorData['message'];
+        }
+
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errorData['message'] ??
-                'Terjadi kesalahan saat membuat pesanan'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
       }
     } catch (e) {
-      print('Exception occurred during order creation: $e');
+      print('Error creating order: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -252,7 +217,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         setState(() {
           _isSubmitting = false;
         });
-        print('Order creation process completed');
       }
     }
   }
@@ -397,89 +361,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               total: _total,
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Foto Pesanan',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _pickImage(ImageSource.camera),
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text('Ambil Foto'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _pickImage(ImageSource.gallery),
-                    icon: const Icon(Icons.photo_library),
-                    label: const Text('Pilih dari Galeri'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if (_selectedImage == null) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: Colors.red.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.error_outline,
-                        color: Colors.red.shade700, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Foto pesanan wajib diisi',
-                        style: TextStyle(
-                          color: Colors.red.shade700,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            if (_selectedImage != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                height: 200,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.file(
-                    _selectedImage!,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: 200,
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
       ),
@@ -525,8 +406,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 child: ElevatedButton(
                   onPressed: (_selectedCustomer == null ||
                           _cartItems.isEmpty ||
-                          _isSubmitting ||
-                          _selectedImage == null)
+                          _isSubmitting)
                       ? null
                       : _createOrder,
                   style: ElevatedButton.styleFrom(

@@ -148,7 +148,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   Widget _buildStatusCard() {
     final orderStatus = widget.order.status?.toLowerCase();
-    final shouldShowButton = orderStatus == 'processing';
+    final shouldShowButton = orderStatus == 'pending';
 
     return Column(
       children: [
