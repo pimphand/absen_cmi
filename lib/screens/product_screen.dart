@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:io';
 import '../config/api_config.dart';
 import '../widgets/product/product_detail_bottom_sheet.dart';
 import 'package:logging/logging.dart';
@@ -18,11 +19,12 @@ class ProductScreen extends StatefulWidget {
 
 class _ProductScreenState extends State<ProductScreen> {
   List<Map<String, dynamic>> products = [];
-  List<String> brands = [];
+  List<Map<String, dynamic>> brands = [];
   String? selectedBrand;
   String searchQuery = '';
   bool isLoading = true;
   bool isLoadingMore = false;
+  bool isLoadingBrands = true;
   int currentPage = 1;
   int totalPages = 1;
   final int itemsPerPage = 20;
@@ -31,13 +33,22 @@ class _ProductScreenState extends State<ProductScreen> {
   Map<String, dynamic>? _userData;
   bool _isSales = false;
   Timer? _debounce;
+  late HttpClient _httpClient;
 
   @override
   void initState() {
     super.initState();
+    _setupHttpClient();
     _loadUserData();
+    fetchBrands();
     fetchProducts();
     _scrollController.addListener(_onScroll);
+  }
+
+  void _setupHttpClient() {
+    _httpClient = HttpClient()
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
   }
 
   @override
@@ -45,6 +56,7 @@ class _ProductScreenState extends State<ProductScreen> {
     _searchController.dispose();
     _scrollController.dispose();
     _debounce?.cancel();
+    _httpClient.close();
     super.dispose();
   }
 
@@ -57,6 +69,39 @@ class _ProductScreenState extends State<ProductScreen> {
         _isSales =
             _userData?['role']?['name']?.toString().toLowerCase() == 'sales';
       });
+    }
+  }
+
+  Future<http.Response> _makeRequest(String url) async {
+    final request = await _httpClient.getUrl(Uri.parse(url));
+    final response = await request.close();
+    final responseBody = await response.transform(utf8.decoder).join();
+    return http.Response(responseBody, response.statusCode);
+  }
+
+  Future<void> fetchBrands() async {
+    try {
+      setState(() => isLoadingBrands = true);
+      final response =
+          await _makeRequest('https://absensi.dmpt.my.id/api/brands');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          brands = List<Map<String, dynamic>>.from(data['data']);
+          isLoadingBrands = false;
+        });
+      } else {
+        throw Exception('Failed to load brands');
+      }
+    } catch (e) {
+      _logger.severe('Error fetching brands: $e');
+      setState(() => isLoadingBrands = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading brands: ${e.toString()}')),
+        );
+      }
     }
   }
 
@@ -94,6 +139,10 @@ class _ProductScreenState extends State<ProductScreen> {
         queryParams['name'] = searchQuery;
       }
 
+      if (selectedBrand != null) {
+        queryParams['brand'] = selectedBrand!;
+      }
+
       final queryString = queryParams.entries
           .map((e) =>
               '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
@@ -102,7 +151,7 @@ class _ProductScreenState extends State<ProductScreen> {
       final url = '${ApiConfig.cikuraiProductsEndpoint}?$queryString';
       _logger.info('Fetching products from URL: $url');
 
-      final response = await http.get(Uri.parse(url));
+      final response = await _makeRequest(url);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -111,19 +160,12 @@ class _ProductScreenState extends State<ProductScreen> {
 
         _logger.info('Loaded ${productsData.length} products');
 
-        // Extract unique brands
-        final Set<String> uniqueBrands = productsData
-            .map((product) => product['brand']?.toString() ?? '')
-            .where((brand) => brand.isNotEmpty)
-            .toSet();
-
         setState(() {
           if (currentPage == 1) {
             products = productsData.cast<Map<String, dynamic>>();
           } else {
             products.addAll(productsData.cast<Map<String, dynamic>>());
           }
-          brands = uniqueBrands.toList()..sort();
           currentPage = meta['current_page'] ?? 1;
           totalPages = meta['last_page'] ?? 1;
           _logger.info('Total pages: $totalPages, Current page: $currentPage');
@@ -162,7 +204,11 @@ class _ProductScreenState extends State<ProductScreen> {
       };
 
       if (searchQuery.isNotEmpty) {
-        queryParams['search'] = searchQuery;
+        queryParams['name'] = searchQuery;
+      }
+
+      if (selectedBrand != null) {
+        queryParams['brand'] = selectedBrand!;
       }
 
       final queryString = queryParams.entries
@@ -173,7 +219,7 @@ class _ProductScreenState extends State<ProductScreen> {
       final url = '${ApiConfig.cikuraiProductsEndpoint}?$queryString';
       _logger.info('Loading more products from URL: $url');
 
-      final response = await http.get(Uri.parse(url));
+      final response = await _makeRequest(url);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -292,36 +338,8 @@ class _ProductScreenState extends State<ProductScreen> {
                   onChanged: _onSearchChanged,
                 ),
                 const SizedBox(height: 16),
-                // Brand Filter Dropdown
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      hint: const Text('Filter by Brand'),
-                      value: selectedBrand,
-                      items: [
-                        const DropdownMenuItem<String>(
-                          value: null,
-                          child: Text('All Brands'),
-                        ),
-                        ...brands.map((brand) => DropdownMenuItem<String>(
-                              value: brand,
-                              child: Text(brand),
-                            )),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          selectedBrand = value;
-                        });
-                      },
-                    ),
-                  ),
-                ),
+                // Brand Carousel
+                _buildBrandCarousel(),
               ],
             ),
           ),
@@ -396,10 +414,20 @@ class _ProductScreenState extends State<ProductScreen> {
                                       fit: BoxFit.cover,
                                       errorBuilder:
                                           (context, error, stackTrace) {
-                                        return Container(
+                                        return Image.network(
+                                          'https://cikurai.mandalikaputrabersama.com/storage/${product['image']}',
                                           height: 120,
-                                          color: Colors.grey[200],
-                                          child: const Icon(Icons.broken_image),
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            return Container(
+                                              height: 120,
+                                              color: Colors.grey[200],
+                                              child: const Icon(
+                                                  Icons.broken_image),
+                                            );
+                                          },
                                         );
                                       },
                                     ),
@@ -446,6 +474,139 @@ class _ProductScreenState extends State<ProductScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBrandCarousel() {
+    return SizedBox(
+      height: 80,
+      child: isLoadingBrands
+          ? const Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: brands.length + 1, // +1 for "All Brands"
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedBrand = null;
+                          currentPage = 1;
+                          products = [];
+                        });
+                        fetchProducts();
+                      },
+                      child: Container(
+                        width: 80,
+                        decoration: BoxDecoration(
+                          color: selectedBrand == null
+                              ? const Color(0xFF217A3B)
+                              : Colors.grey[200],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.category,
+                              color: selectedBrand == null
+                                  ? Colors.white
+                                  : Colors.grey[600],
+                              size: 24,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'All',
+                              style: TextStyle(
+                                color: selectedBrand == null
+                                    ? Colors.white
+                                    : Colors.grey[600],
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                final brand = brands[index - 1];
+                final isSelected = selectedBrand == brand['name'].toString();
+
+                return Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        selectedBrand = brand['name'].toString();
+                        currentPage = 1;
+                        products = [];
+                      });
+                      fetchProducts();
+                    },
+                    child: Container(
+                      width: 80,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFF217A3B)
+                            : Colors.grey[200],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (brand['logo'] != null)
+                            Image.network(
+                              '${ApiConfig.cikuraiStorageUrl}${brand['logo']}',
+                              height: 40,
+                              width: 40,
+                              fit: BoxFit.contain,
+                              headers: const {
+                                'Accept': '*/*',
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                _logger
+                                    .severe('Error loading brand logo: $error');
+                                return Icon(
+                                  Icons.business,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.grey[600],
+                                  size: 24,
+                                );
+                              },
+                            )
+                          else
+                            Icon(
+                              Icons.business,
+                              color:
+                                  isSelected ? Colors.white : Colors.grey[600],
+                              size: 24,
+                            ),
+                          const SizedBox(height: 4),
+                          Text(
+                            brand['name'].toString(),
+                            style: TextStyle(
+                              color:
+                                  isSelected ? Colors.white : Colors.grey[600],
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }
