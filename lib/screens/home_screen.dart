@@ -17,6 +17,7 @@ import 'history_screen.dart';
 import 'blacklist_screen.dart';
 import 'profile_screen.dart';
 import 'product_screen.dart';
+import 'customer_screen.dart';
 
 final _logger = Logger('HomeScreen');
 
@@ -467,10 +468,17 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                       ),
-                      const _MenuIcon(
+                      _MenuIcon(
                         icon: Icons.store,
                         label: 'Costumers',
                         asset: 'assets/images/icons8-customer-100.png',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const CustomerScreen()),
+                          );
+                        },
                       ),
                       const _MenuIcon(
                         icon: Icons.receipt_long,
