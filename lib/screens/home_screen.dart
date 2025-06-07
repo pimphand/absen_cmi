@@ -16,6 +16,7 @@ import '../widgets/custom_bottom_navigation.dart';
 import 'history_screen.dart';
 import 'blacklist_screen.dart';
 import 'profile_screen.dart';
+import 'product_screen.dart';
 
 final _logger = Logger('HomeScreen');
 
@@ -458,18 +459,25 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: Icons.storefront,
                         label: 'Produk',
                         asset: 'assets/images/icons8-product-64.png',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const ProductScreen()),
+                          );
+                        },
                       ),
-                      _MenuIcon(
+                      const _MenuIcon(
                         icon: Icons.store,
                         label: 'Costumers',
                         asset: 'assets/images/icons8-customer-100.png',
                       ),
-                      _MenuIcon(
+                      const _MenuIcon(
                         icon: Icons.receipt_long,
                         label: 'Order (PO)',
                         asset: 'assets/images/icons8-order-100.png',
                       ),
-                      _MenuIcon(
+                      const _MenuIcon(
                         icon: Icons.bar_chart,
                         label: 'Omset',
                         asset: 'assets/images/icons8-assets-64.png',
@@ -677,39 +685,49 @@ class _MenuIcon extends StatelessWidget {
   final IconData icon;
   final String label;
   final String asset;
-  const _MenuIcon(
-      {required this.icon, required this.label, required this.asset});
+  final VoidCallback? onTap;
+
+  const _MenuIcon({
+    required this.icon,
+    required this.label,
+    required this.asset,
+    this.onTap,
+  });
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Image.asset(asset, width: 36, height: 36),
+            ),
           ),
-          child: Center(
-            child: Image.asset(asset, width: 36, height: 36),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF217A3B),
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFF217A3B),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
