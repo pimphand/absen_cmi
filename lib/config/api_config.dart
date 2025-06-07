@@ -11,6 +11,7 @@ class ApiConfig {
   // Cikurai API
   static const String cikuraiBaseUrl =
       'https://cikurai.mandalikaputrabersama.com/api';
+
   static const String cikuraiStorageUrl =
       'https://pub-c73a61cdd96c4868a7ef3bceafbaeef9.r2.dev/';
   static const String cikuraiProductsEndpoint = '$baseUrl/products';

@@ -516,10 +516,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             return GestureDetector(
                               onTap: () {
                                 try {
-                                  _logger.info('Product tapped: ${p.name}');
-                                  _logger.info('Product ID: ${p.id}');
-                                  _logger.info('Product image: ${p.image}');
-
                                   if (p.id == null || p.id.isEmpty) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
@@ -733,14 +729,14 @@ class _ProductCard extends StatelessWidget {
     required this.title,
     required this.size,
     required this.sold,
-    this.imageHeight = 90,
+    this.imageHeight = 120,
     this.onError,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 160,
+      width: 140,
       margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -754,7 +750,7 @@ class _ProductCard extends StatelessWidget {
         ],
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: MainAxisSize.max,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
@@ -764,8 +760,8 @@ class _ProductCard extends StatelessWidget {
             ),
             child: Image.network(
               image,
-              height: imageHeight,
-              width: 160,
+              height: 100,
+              width: 140,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 print('Error loading image: $error');
@@ -773,8 +769,8 @@ class _ProductCard extends StatelessWidget {
                   onError!(error);
                 }
                 return Container(
-                  height: imageHeight,
-                  width: 160,
+                  height: 140,
+                  width: 140,
                   color: Colors.grey[200],
                   child: const Icon(Icons.broken_image, color: Colors.grey),
                 );
@@ -782,7 +778,7 @@ class _ProductCard extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -790,12 +786,12 @@ class _ProductCard extends StatelessWidget {
                   title,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                    fontSize: 11,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 1),
                 Text(
                   size,
                   style: const TextStyle(
@@ -803,15 +799,17 @@ class _ProductCard extends StatelessWidget {
                     fontSize: 11,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  sold,
-                  style: const TextStyle(
-                    color: Color(0xFF217A3B),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
+                if (sold.isNotEmpty) ...[
+                  const SizedBox(height: 1),
+                  Text(
+                    sold,
+                    style: const TextStyle(
+                      color: Color(0xFF217A3B),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

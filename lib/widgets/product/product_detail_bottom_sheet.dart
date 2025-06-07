@@ -277,7 +277,7 @@ class ProductDetailContent extends StatelessWidget {
               ),
             ),
           if (recommended.isNotEmpty)
-            RecommendedProductsList(recommended: recommended),
+            RecommendedProductsList(recommended: recommended, isSales: isSales),
         ],
       ),
     );
@@ -363,10 +363,12 @@ class ProductDetailInfo extends StatelessWidget {
 
 class RecommendedProductsList extends StatelessWidget {
   final List<Map<String, dynamic>> recommended;
+  final bool isSales;
 
   const RecommendedProductsList({
     Key? key,
     required this.recommended,
+    required this.isSales,
   }) : super(key: key);
 
   @override
@@ -390,7 +392,10 @@ class RecommendedProductsList extends StatelessWidget {
             itemCount: recommended.length,
             itemBuilder: (context, i) {
               final r = recommended[i];
-              return RecommendedProductCard(product: r);
+              return RecommendedProductCard(
+                product: r,
+                isSales: isSales,
+              );
             },
           ),
         ),
@@ -401,51 +406,67 @@ class RecommendedProductsList extends StatelessWidget {
 
 class RecommendedProductCard extends StatelessWidget {
   final Map<String, dynamic> product;
+  final bool isSales;
 
   const RecommendedProductCard({
     Key? key,
     required this.product,
+    required this.isSales,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 140,
-      margin: const EdgeInsets.only(right: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            product['name']?.toString() ?? '',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+    return GestureDetector(
+      onTap: () {
+        Navigator.pop(context); // Close current bottom sheet
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => ProductDetailBottomSheet(
+            productId: product['id'].toString(),
+            isSales: isSales,
           ),
-          Text(
-            'Brand: ${product['brand']?.toString() ?? '-'}',
-            style: const TextStyle(
-              fontSize: 11,
-              color: Colors.grey,
+        );
+      },
+      child: Container(
+        width: 140,
+        margin: const EdgeInsets.only(right: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              product['name']?.toString() ?? '',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-          const SizedBox(height: 6),
-          if (product['image'] != null &&
-              product['image'].toString().isNotEmpty)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                'https://cikurai.mandalikaputrabersama.com/storage/${product['image']}',
-                height: 70,
-                width: 140,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    const Icon(Icons.broken_image),
+            Text(
+              'Brand: ${product['brand']?.toString() ?? '-'}',
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.grey,
               ),
             ),
-        ],
+            const SizedBox(height: 6),
+            if (product['image'] != null &&
+                product['image'].toString().isNotEmpty)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  'https://cikurai.mandalikaputrabersama.com/storage/${product['image']}',
+                  height: 70,
+                  width: 140,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.broken_image),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -19,33 +19,47 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   void initState() {
     super.initState();
-    print('Product ID: ${widget.productId}');
     fetchProductDetail();
   }
 
   Future<void> fetchProductDetail() async {
-    final url = ApiConfig.cikuraiProductDetailEndpoint(widget.productId);
-    print('=== Product Detail Debug Info ===');
-    print('Base URL: ${ApiConfig.cikuraiBaseUrl}');
-    print('Product ID: ${widget.productId}');
-    print('Complete URL: $url');
-    print('==============================');
+    try {
+      final url = ApiConfig.cikuraiProductDetailEndpoint(widget.productId);
+      final response = await http.get(Uri.parse(url));
 
-    final response = await http.get(Uri.parse(url));
-    print('Response Status: ${response.statusCode}');
-    print('Response Body: ${response.body}');
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          product = data['data'];
+          recommended = data['recomended'] ?? [];
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Gagal memuat detail produk. Silakan coba lagi.'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error in fetchProductDetail: $e');
       setState(() {
-        product = data['data'];
-        recommended = data['recomended'] ?? [];
         isLoading = false;
       });
-    } else {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Terjadi kesalahan. Silakan coba lagi.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
@@ -101,39 +115,52 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             itemCount: recommended.length,
                             itemBuilder: (context, i) {
                               final r = recommended[i];
-                              return Container(
-                                width: 140,
-                                margin: const EdgeInsets.only(right: 12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.network(
-                                        '${ApiConfig.cikuraiStorageUrl}${r['image']}',
-                                        height: 70,
-                                        width: 140,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) =>
-                                                const Icon(Icons.broken_image),
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ProductDetailScreen(
+                                        productId: r['id'].toString(),
                                       ),
                                     ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      r['name'] ?? '',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Text(
-                                      'Brand: ${r['brand'] ?? '-'}',
-                                      style: const TextStyle(
-                                          fontSize: 11, color: Colors.grey),
-                                    ),
-                                  ],
+                                  );
+                                },
+                                child: Container(
+                                  width: 140,
+                                  margin: const EdgeInsets.only(right: 12),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(
+                                          '${ApiConfig.cikuraiStorageUrl}${r['image']}',
+                                          height: 70,
+                                          width: 140,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error,
+                                                  stackTrace) =>
+                                              const Icon(Icons.broken_image),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        r['name'] ?? '',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Text(
+                                        'Brand: ${r['brand'] ?? '-'}',
+                                        style: const TextStyle(
+                                            fontSize: 11, color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               );
                             },
