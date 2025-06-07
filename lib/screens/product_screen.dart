@@ -408,26 +408,35 @@ class _ProductScreenState extends State<ProductScreen> {
                                       top: Radius.circular(12),
                                     ),
                                     child: Image.network(
-                                      product['image'] ?? '',
+                                      '${product['image']}',
                                       height: 120,
                                       width: double.infinity,
                                       fit: BoxFit.cover,
+                                      loadingBuilder:
+                                          (context, child, loadingProgress) {
+                                        if (loadingProgress == null)
+                                          return child;
+                                        return Center(
+                                          child: CircularProgressIndicator(
+                                            value: loadingProgress
+                                                        .expectedTotalBytes !=
+                                                    null
+                                                ? loadingProgress
+                                                        .cumulativeBytesLoaded /
+                                                    loadingProgress
+                                                        .expectedTotalBytes!
+                                                : null,
+                                          ),
+                                        );
+                                      },
                                       errorBuilder:
                                           (context, error, stackTrace) {
-                                        return Image.network(
-                                          'https://cikurai.mandalikaputrabersama.com/storage/${product['image']}',
+                                        _logger.severe(
+                                            'Error loading product image: $error');
+                                        return Container(
                                           height: 120,
-                                          width: double.infinity,
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (context, error, stackTrace) {
-                                            return Container(
-                                              height: 120,
-                                              color: Colors.grey[200],
-                                              child: const Icon(
-                                                  Icons.broken_image),
-                                            );
-                                          },
+                                          color: Colors.grey[200],
+                                          child: const Icon(Icons.broken_image),
                                         );
                                       },
                                     ),
