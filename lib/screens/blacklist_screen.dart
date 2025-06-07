@@ -6,6 +6,10 @@ import '../config/api_config.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'dart:async';
+import 'home_screen.dart';
+import 'history_screen.dart';
+import 'profile_screen.dart';
+import '../widgets/custom_bottom_navigation.dart';
 
 class BlacklistScreen extends StatefulWidget {
   const BlacklistScreen({Key? key}) : super(key: key);
@@ -101,8 +105,55 @@ class _BlacklistScreenState extends State<BlacklistScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('CS Blacklist'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          color: Colors.white,
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+            );
+          },
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'CS Blacklist',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            Text(
+              'Daftar pelanggan blacklist',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.white.withOpacity(0.8),
+              ),
+            ),
+          ],
+        ),
+        centerTitle: true,
         backgroundColor: const Color(0xFF217A3B),
+        elevation: 2,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(16),
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            color: Colors.white,
+            onPressed: () => _fetchBlacklistedCustomers(
+              searchQuery: _searchController.text,
+            ),
+            tooltip: 'Refresh',
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -111,14 +162,14 @@ class _BlacklistScreenState extends State<BlacklistScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Cari Nama Toko / Nama Owner',
+                hintText: 'Cari Customer',
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8.0),
+                  borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Colors.grey[100],
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                fillColor: Colors.grey[200],
               ),
               onChanged: _onSearchChanged,
             ),
@@ -128,35 +179,24 @@ class _BlacklistScreenState extends State<BlacklistScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
                     ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              _error!,
-                              style: const TextStyle(color: Colors.red),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () => _fetchBlacklistedCustomers(
-                                searchQuery: _searchController.text,
-                              ),
-                              child: const Text('Retry'),
-                            ),
-                          ],
+                        child: Text(
+                          _error!,
+                          style: const TextStyle(color: Colors.red),
+                          textAlign: TextAlign.center,
                         ),
                       )
                     : _customers.isEmpty
                         ? const Center(
-                            child: Text('No blacklisted customers found'),
+                            child: Text(
+                                'Tidak ada pelanggan blacklist ditemukan.'),
                           )
                         : ListView.builder(
+                            padding: const EdgeInsets.all(16.0),
                             itemCount: _customers.length,
                             itemBuilder: (context, index) {
                               final customer = _customers[index];
                               return Card(
-                                margin: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 8),
+                                margin: const EdgeInsets.symmetric(vertical: 8),
                                 child: ListTile(
                                   leading: CircleAvatar(
                                     backgroundImage: NetworkImage(
@@ -186,6 +226,34 @@ class _BlacklistScreenState extends State<BlacklistScreen> {
                           ),
           ),
         ],
+      ),
+      bottomNavigationBar: CustomBottomNavigation(
+        currentIndex: 2,
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const HomeScreen()),
+              );
+              break;
+            case 1:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const HistoryScreen()),
+              );
+              break;
+            case 2:
+              // Already on blacklist screen
+              break;
+            case 3:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+              break;
+          }
+        },
       ),
     );
   }
