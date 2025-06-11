@@ -4,10 +4,17 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/api_config.dart';
+import '../models/customer.dart';
 
 class AddCustomerForm extends StatefulWidget {
   final VoidCallback onSuccess;
-  const AddCustomerForm({Key? key, required this.onSuccess}) : super(key: key);
+  final Customer? customer;
+
+  const AddCustomerForm({
+    Key? key,
+    required this.onSuccess,
+    this.customer,
+  }) : super(key: key);
 
   @override
   State<AddCustomerForm> createState() => _AddCustomerFormState();
@@ -44,6 +51,31 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
   void initState() {
     super.initState();
     _fetchProvinces();
+
+    // If in edit mode, populate the form
+    if (widget.customer != null) {
+      _nameController.text = widget.customer!.name;
+      _phoneController.text = widget.customer!.phone;
+      _storeNameController.text = widget.customer!.storeName;
+      _addressController.text = widget.customer!.address;
+
+      // Set province and city
+      if (widget.customer!.state != null &&
+          widget.customer!.state!.isNotEmpty) {
+        _selectedStateName = widget.customer!.state;
+        // Find and set the province ID
+        for (var province in _provinces) {
+          if (province['name'] == widget.customer!.state) {
+            _selectedStateId = province['id'];
+            break;
+          }
+        }
+      }
+
+      if (widget.customer!.city != null && widget.customer!.city!.isNotEmpty) {
+        _selectedCityName = widget.customer!.city;
+      }
+    }
   }
 
   Future<void> _fetchProvinces() async {
@@ -61,6 +93,20 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
                   (e) => {'id': e['id'], 'name': e['name']})
               .toList();
         });
+
+        // After fetching provinces, if in edit mode, set the province and fetch cities
+        if (widget.customer != null &&
+            widget.customer!.state != null &&
+            widget.customer!.state!.isNotEmpty) {
+          for (var province in _provinces) {
+            if (province['name'] == widget.customer!.state) {
+              _selectedStateId = province['id'];
+              _selectedStateName = province['name'];
+              await _fetchCities(province['id']!);
+              break;
+            }
+          }
+        }
       }
     } catch (e) {
       // ignore error for now
@@ -89,6 +135,19 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
                   (e) => {'id': e['id'], 'name': e['name']})
               .toList();
         });
+
+        // After fetching cities, if in edit mode, set the city
+        if (widget.customer != null &&
+            widget.customer!.city != null &&
+            widget.customer!.city!.isNotEmpty) {
+          for (var city in _cities) {
+            if (city['name'] == widget.customer!.city) {
+              _selectedCityId = city['id'];
+              _selectedCityName = city['name'];
+              break;
+            }
+          }
+        }
       }
     } catch (e) {
       // ignore error for now
@@ -115,21 +174,28 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
 
   Future<void> _submit() async {
     if (!_formKey2.currentState!.validate()) return;
-    if (_storePhoto == null || _ownerPhoto == null) {
+
+    // Only require photos for new customers
+    if (widget.customer == null &&
+        (_storePhoto == null || _ownerPhoto == null)) {
       setState(() {
         _error = 'Foto toko dan foto pemilik wajib diisi.';
       });
       return;
     }
+
     setState(() {
       _isLoading = true;
       _error = null;
     });
     try {
-      var uri = Uri.parse('${ApiConfig.baseUrl}/customers');
-      var request = http.MultipartRequest('POST', uri);
+      var uri = Uri.parse(
+          '${ApiConfig.baseUrl}/customers${widget.customer != null ? '/${widget.customer!.id}' : ''}');
+      var request =
+          http.MultipartRequest(widget.customer != null ? 'POST' : 'POST', uri);
       request.headers['Authorization'] = 'Bearer ${ApiConfig.token}';
       request.headers['Accept'] = 'application/json';
+
       request.fields['name'] = _nameController.text;
       request.fields['phone'] = _phoneController.text;
       request.fields['store_name'] = _storeNameController.text;
@@ -139,10 +205,16 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
       if (_npwpController.text.isNotEmpty) {
         request.fields['npwp'] = _npwpController.text;
       }
-      request.files.add(
-          await http.MultipartFile.fromPath('store_photo', _storePhoto!.path));
-      request.files.add(
-          await http.MultipartFile.fromPath('owner_photo', _ownerPhoto!.path));
+
+      // Only add photos if they are selected
+      if (_storePhoto != null) {
+        request.files.add(await http.MultipartFile.fromPath(
+            'store_photo', _storePhoto!.path));
+      }
+      if (_ownerPhoto != null) {
+        request.files.add(await http.MultipartFile.fromPath(
+            'owner_photo', _ownerPhoto!.path));
+      }
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
@@ -152,7 +224,7 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
       } else {
         setState(() {
           _error =
-              'Gagal menambah customer. Status: ${response.statusCode}\nPesan: ${response.body}';
+              'Gagal ${widget.customer != null ? 'mengubah' : 'menambah'} customer. Status: ${response.statusCode}\nPesan: ${response.body}';
         });
       }
     } catch (e) {
@@ -181,9 +253,15 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Tambah Customer',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 20)),
+                    Text(
+                      widget.customer != null
+                          ? 'Edit Customer'
+                          : 'Tambah Customer',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     TextFormField(
                       controller: _nameController,
@@ -291,9 +369,15 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Tambah Customer',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 20)),
+                    Text(
+                      widget.customer != null
+                          ? 'Edit Customer'
+                          : 'Tambah Customer',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     TextFormField(
                       controller: _npwpController,
@@ -308,7 +392,7 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
                             onPressed:
                                 _isLoading ? null : () => _pickImage(true),
                             child: Text(_storePhoto == null
-                                ? 'Pilih Foto Toko'
+                                ? 'Pilih Foto Toko${widget.customer != null ? ' (optional)' : ''}'
                                 : 'Foto Toko Terpilih'),
                           ),
                         ),
@@ -328,7 +412,7 @@ class _AddCustomerFormState extends State<AddCustomerForm> {
                             onPressed:
                                 _isLoading ? null : () => _pickImage(false),
                             child: Text(_ownerPhoto == null
-                                ? 'Pilih Foto Pemilik'
+                                ? 'Pilih Foto Pemilik${widget.customer != null ? ' (optional)' : ''}'
                                 : 'Foto Pemilik Terpilih'),
                           ),
                         ),
