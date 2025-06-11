@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../screens/cart_screen.dart';
 import '../../models/cart_item.dart';
 import '../../services/cart_service.dart';
+import '../../config/api_config.dart';
 
 class ProductDetailBottomSheet extends StatelessWidget {
   final String productId;
@@ -18,8 +19,7 @@ class ProductDetailBottomSheet extends StatelessWidget {
 
   Future<Map<String, dynamic>> fetchProductDetail(String productId) async {
     try {
-      final url =
-          'https://cikurai.mandalikaputrabersama.com/api/products/$productId';
+      final url = ApiConfig.cikuraiProductDetailEndpoint(productId);
       print('Fetching product detail from: $url');
 
       final response = await http.get(Uri.parse(url));
@@ -185,8 +185,7 @@ class ProductDetailContent extends StatelessWidget {
         productId: product['id'].toString(),
         name: product['name'].toString(),
         brand: product['brand'].toString(),
-        imageUrl:
-            'https://cikurai.mandalikaputrabersama.com/storage/${product['image']}',
+        imageUrl: '${ApiConfig.cikuraiStorageUrl}${product['image']}',
         price: product['price']?.toDouble() ?? 0.0,
         quantity: 1,
       );
@@ -315,7 +314,7 @@ class ProductDetailImage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Image.network(
-        'https://cikurai.mandalikaputrabersama.com/storage/$image',
+        '${ApiConfig.cikuraiStorageUrl}$image',
         height: 120,
         fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) => const Icon(
@@ -457,7 +456,7 @@ class RecommendedProductCard extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.network(
-                  'https://cikurai.mandalikaputrabersama.com/storage/${product['image']}',
+                  '${ApiConfig.cikuraiStorageUrl}${product['image']}',
                   height: 70,
                   width: 140,
                   fit: BoxFit.cover,

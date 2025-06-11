@@ -1,11 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/api_config.dart';
 
 class AttendanceService {
-  static const String _baseUrl =
-      'https://cikurai.mandalikaputrabersama.com/api';
-
   Future<Map<String, dynamic>> checkAttendance() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -16,7 +14,7 @@ class AttendanceService {
       }
 
       final response = await http.get(
-        Uri.parse('$_baseUrl/absen-check-in'),
+        Uri.parse('${ApiConfig.cikuraiBaseUrl}/absen-check-in'),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',

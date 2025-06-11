@@ -82,8 +82,7 @@ class _ProductScreenState extends State<ProductScreen> {
   Future<void> fetchBrands() async {
     try {
       setState(() => isLoadingBrands = true);
-      final response =
-          await _makeRequest('https://absensi.dmpt.my.id/api/brands');
+      final response = await _makeRequest(ApiConfig.brandsEndpoint);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

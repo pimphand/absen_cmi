@@ -191,8 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<Map<String, dynamic>> fetchProductDetail(String productId) async {
     try {
-      final url =
-          'https://cikurai.mandalikaputrabersama.com/api/products/$productId';
+      final url = ApiConfig.cikuraiProductDetailEndpoint(productId);
       _logger.info('Fetching product detail from: $url');
 
       final response = await http.get(Uri.parse(url));
